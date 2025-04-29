@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EMOdetector - Emotion Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>EMOdetector</h1>
+        
+        <!-- Animated emoji banner -->
+        <div class="emoji-title">
+            <div class="emoji-slider">
+                {% for emotion, emoji in emotions_emoji_dict.items() %}
+                <span class="emoji-item">{{ emoji }}</span>
+                {% endfor %}
+                {% for emotion, emoji in emotions_emoji_dict.items() %}
+                <span class="emoji-item">{{ emoji }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Input form -->
+        <form method="POST" action="/">
+            <div class="form-group">
+                <textarea name="text_input" placeholder="Enter your text here to analyze the emotions..." required>{{ request.form.get('text_input', '') }}</textarea>
+            </div>
+            <button type="submit">Analyze Emotions</button>
+        </form>
+        
+        <!-- Latest result with side-by-side emotion display and chart -->
+        {% if result %}
+        <div class="result">
+            <div class="result-flex">
+                <div class="emotion-display">
+                    <div class="emotion-emoji">{{ result.emoji }}</div>
+                    <div class="emotion-name">{{ result.emotion }}</div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="emotionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- All available emotions list at bottom -->
+        <div class="emotion-list">
+            {% for emotion, emoji in emotions_emoji_dict.items() %}
+            <div class="emotion-item">
+                <div class="small-emoji">{{ emoji }}</div>
+                <div class="small-text">{{ emotion }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if result and result.emotions %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get emotion emojis dictionary from server data
+            const emojis = JSON.parse('{{ emotions_emoji_dict | tojson | safe }}');
+            
+            // Get and parse emotion data
+            const emotionData = JSON.parse('{{ result.emotions | tojson | safe }}');
+                        const sortedEmotions = Object.entries(emotionData)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);  // Show only top 5 emotions
+            
+            console.log("Sorted emotions:", sortedEmotions);
+            
+            // Create custom HTML for chart
+            const chartContainer = document.querySelector('.chart-container');
+            chartContainer.innerHTML = ''; // Remove canvas
+            
+            // Create custom bar chart with emojis
+            const customChart = document.createElement('div');
+            customChart.className = 'custom-chart';
+            
+            // Create bars for each emotion
+            sortedEmotions.forEach(([emotion, value], index) => {
+                const barContainer = document.createElement('div');
+                barContainer.className = 'emotion-bar-container';
+                
+                const emoji = document.createElement('div');
+                emoji.className = 'bar-emoji';
+                emoji.textContent = emojis[emotion] || "😶";
+                
+                const barWrapper = document.createElement('div');
+                barWrapper.className = 'bar-wrapper';
+                
+                const bar = document.createElement('div');
+                bar.className = 'emotion-bar';
+                
+                // Ensure value is properly calculated for width - convert to percentage for display
+                const percentage = value * 100;
+                const widthPercentage = Math.max(percentage, 5); // Ensure minimal width for visibility
+                
+                bar.style.width = `${widthPercentage}%`;
+                bar.style.background = `linear-gradient(to right, #ff6b6b, #ff9f43)`;
+                
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = `${emotion}: ${percentage.toFixed(2)}%`;
+                
+                barWrapper.appendChild(bar);
+                barContainer.appendChild(emoji);
+                barContainer.appendChild(barWrapper);
+                barContainer.appendChild(label);
+                customChart.appendChild(barContainer);
+                
+                console.log(`Bar for ${emotion}: width=${widthPercentage}%, value=${value}, percentage=${percentage}%`);
+            });
+            
+            chartContainer.appendChild(customChart);
+        });
+    </script>
+    {% endif %} 
+</body>
+</html>
+```
